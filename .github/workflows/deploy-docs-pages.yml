@@ -1,0 +1,42 @@
+name: Deploy docs to GitHub Pages
+
+# Preview-only workflow: builds and deploys the docs site to GitHub Pages
+# when pushed to the docs-preview branch. Kept off main so PRs to upstream
+# do not carry this preview configuration.
+
+on:
+  push:
+    branches:
+      - docs-preview
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build docs
+        run: pnpm -F @proj-airi/docs run build
+        env:
+          # GitHub Pages project site: https://<owner>.github.io/<repo>/
+          BASE_URL: /${{ github.event.repository.name }}/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.vitepress/dist
+      - uses: actions/deploy-pages@v4
