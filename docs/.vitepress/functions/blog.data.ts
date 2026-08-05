@@ -1,3 +1,5 @@
+import type { Buffer } from 'node:buffer'
+
 import type { SiteConfig } from 'vitepress'
 
 import { createHash } from 'node:crypto'
@@ -98,10 +100,37 @@ export default createContentLoader('**/blog/**/*.md', {
           if (!file)
             return file
 
+          // Site-root URLs like /blog/... refer to media moved to
+          // content/public; keep the public URL instead of emitting a hashed
+          // /assets/ URL. Only bypass hashing when the file actually lives
+          // under content/public — @assets(...) covers resolve to page paths
+          // (e.g. /en/blog/.../assets/...) that must still be hashed, since
+          // frontmatterAssets registers them as /assets/<name>.<hash>.<ext>.
+          if (file.startsWith('/')) {
+            try {
+              await readFile(join(config.srcDir, 'public', file))
+              return file
+            }
+            catch {
+              // not a public file — fall through to hashing
+            }
+          }
+
           const parsed = parse(file)
           try {
+            // Shared media moved to `content/public` is referenced by its
+            // site-root URL (e.g. /en/blog/...); fall back to public when the
+            // file is no longer under srcDir.
+            const srcPath = join(config.srcDir, file)
+            let content: Buffer
+            try {
+              content = await readFile(srcPath)
+            }
+            catch {
+              content = await readFile(join(config.srcDir, 'public', file))
+            }
             const hash = createHash('sha256')
-              .update(await readFile(join(config.srcDir, file)))
+              .update(content)
               .digest('hex')
               .slice(0, 8)
 
