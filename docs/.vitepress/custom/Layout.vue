@@ -11,6 +11,7 @@ import SearchTrigger from '../components/SearchTrigger.vue'
 import Docs from './Docs.vue'
 import Showcase from './Showcase.vue'
 
+import { rememberLanguageFromPath } from '../composables/language-redirect'
 import { themeColorFromValue, useThemeColor } from '../composables/theme-color'
 
 const { site, theme, frontmatter, lang, isDark } = useData<{ logo: string }>()
@@ -31,6 +32,11 @@ watch(route, () => updateThemeColor(), { immediate: true })
 onMounted(() => updateThemeColor())
 
 watch(lang, () => locale.value = lang.value, { immediate: true })
+
+// Record the language of the page the user actually visited (localStorage);
+// applyLanguageRedirect uses this to respect the manual choice on later visits.
+onMounted(() => rememberLanguageFromPath(route.path))
+watch(() => route.path, path => rememberLanguageFromPath(path))
 </script>
 
 <template>

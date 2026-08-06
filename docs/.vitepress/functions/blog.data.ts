@@ -116,11 +116,21 @@ export default createContentLoader('**/blog/**/*.md', {
         const previewCoverLight = withBase(await fileToUrl(withDirname(fromAtAssets(frontmatter['preview-cover']?.light), cwdFromUrl(url))), base)
         const previewCoverDark = withBase(await fileToUrl(withDirname(fromAtAssets(frontmatter['preview-cover']?.dark), cwdFromUrl(url))), base)
 
+        // Excerpts are rendered by VitePress with relative asset paths intact,
+        // so images inside them resolve against the blog index URL (/en/blog/)
+        // and 404. The real file's URL differs between dev (source path) and
+        // build (hashed), so drop images from excerpts instead — the card
+        // cover already renders via preview-cover.
+        let fixedExcerpt = excerpt
+        if (fixedExcerpt) {
+          fixedExcerpt = fixedExcerpt.replace(/<img[^>]*>/g, '')
+        }
+
         const res = {
           title: frontmatter.title,
           url,
           urlWithoutLang: url.replace(`/${foundLanguage?.lang || 'en'}`, ''),
-          excerpt,
+          excerpt: fixedExcerpt,
           date: formatDate(frontmatter.date),
           lang: foundLanguage?.lang || 'en',
           frontmatter: {

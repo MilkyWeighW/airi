@@ -142,7 +142,7 @@ onMounted(async () => {
       prevHeight = height
     }
   }
-  if (!reducedMotion.value)
+  if (reducedMotion.value !== 'reduce')
     transitionName.value = 'fade'
 })
 </script>
